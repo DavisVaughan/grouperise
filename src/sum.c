@@ -2,27 +2,37 @@
 #include <R.h>
 #include <Rinternals.h>
 
-// Assume x and g are the same length
-SEXP grouped_sum_dbl(SEXP x, SEXP g, SEXP m_) {
-  int n = Rf_length(x);
-  int m = Rf_asInteger(m_);
+// idx is a list of integers
+SEXP grouped_sum_dbl(SEXP x, SEXP indices, SEXP n_groups_) {
 
-  SEXP out = PROTECT(Rf_allocVector(REALSXP, m));
+  int n_groups = Rf_asInteger(n_groups_);
 
-  double *p_x = REAL(x);
-  int *p_g = INTEGER(g);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n_groups));
   double *p_out = REAL(out);
 
-  for (int j = 0; j < m; ++j) {
-    p_out[j] = 0;
-  }
+  double *p_x = REAL(x);
 
-  for (int i = 0; i < n; ++i) {
-    int g = p_g[i] - 1;
-    p_out[g] += p_x[i];
+  SEXP index;
+  int *p_index;
+  R_len_t index_size;
+
+  double sum;
+
+  for (int g = 0; g < n_groups; ++g) {
+    sum = 0;
+
+    index = VECTOR_ELT(indices, g);
+    p_index = INTEGER(index);
+    index_size = Rf_length(index);
+
+    for (int i = 0; i < index_size; ++i) {
+      int idx = p_index[i] - 1;
+      sum += p_x[idx];
+    }
+
+    p_out[g] = sum;
   }
 
   UNPROTECT(1);
-
   return out;
 }
